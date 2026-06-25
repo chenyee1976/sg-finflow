@@ -12,7 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated/rewards'
+import { Route as AuthenticatedMilesRouteImport } from './routes/_authenticated/miles'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCashflowRouteImport } from './routes/_authenticated/cashflow'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -28,40 +33,101 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMilesRoute = AuthenticatedMilesRouteImport.update({
+  id: '/miles',
+  path: '/miles',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCashflowRoute = AuthenticatedCashflowRouteImport.update({
+  id: '/cashflow',
+  path: '/cashflow',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/cashflow': typeof AuthenticatedCashflowRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/miles': typeof AuthenticatedMilesRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
+  '/support': typeof AuthenticatedSupportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/cashflow': typeof AuthenticatedCashflowRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/miles': typeof AuthenticatedMilesRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
+  '/support': typeof AuthenticatedSupportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/cashflow': typeof AuthenticatedCashflowRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/miles': typeof AuthenticatedMilesRoute
+  '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/account'
+    | '/cashflow'
+    | '/dashboard'
+    | '/miles'
+    | '/rewards'
+    | '/support'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard'
+  to:
+    | '/'
+    | '/auth'
+    | '/account'
+    | '/cashflow'
+    | '/dashboard'
+    | '/miles'
+    | '/rewards'
+    | '/support'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/account'
+    | '/_authenticated/cashflow'
     | '/_authenticated/dashboard'
+    | '/_authenticated/miles'
+    | '/_authenticated/rewards'
+    | '/_authenticated/support'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -93,6 +159,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rewards': {
+      id: '/_authenticated/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/miles': {
+      id: '/_authenticated/miles'
+      path: '/miles'
+      fullPath: '/miles'
+      preLoaderRoute: typeof AuthenticatedMilesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -100,15 +187,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cashflow': {
+      id: '/_authenticated/cashflow'
+      path: '/cashflow'
+      fullPath: '/cashflow'
+      preLoaderRoute: typeof AuthenticatedCashflowRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedCashflowRoute: typeof AuthenticatedCashflowRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedMilesRoute: typeof AuthenticatedMilesRoute
+  AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedCashflowRoute: AuthenticatedCashflowRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedMilesRoute: AuthenticatedMilesRoute,
+  AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
