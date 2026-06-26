@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Wallet, TrendingUp, PieChart, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
@@ -10,17 +11,24 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, reward_focus")
+        .select("first_name, reward_focus, onboarding_completed")
         .maybeSingle();
       if (error) throw error;
       return data;
     },
   });
+
+  useEffect(() => {
+    if (profile && profile.onboarding_completed === false) {
+      navigate({ to: "/onboarding", replace: true });
+    }
+  }, [profile, navigate]);
 
   const showMiles = profile?.reward_focus !== "cashback";
   const greeting = getGreeting();
