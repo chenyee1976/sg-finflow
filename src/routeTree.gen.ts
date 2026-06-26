@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated/rewards'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedMilesRouteImport } from './routes/_authenticated/miles'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCashflowRouteImport } from './routes/_authenticated/cashflow'
@@ -41,6 +42,11 @@ const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
 const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
   id: '/rewards',
   path: '/rewards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMilesRoute = AuthenticatedMilesRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/cashflow': typeof AuthenticatedCashflowRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/miles': typeof AuthenticatedMilesRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/cashflow': typeof AuthenticatedCashflowRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/miles': typeof AuthenticatedMilesRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/_authenticated/cashflow': typeof AuthenticatedCashflowRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/miles': typeof AuthenticatedMilesRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
 }
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/cashflow'
     | '/dashboard'
     | '/miles'
+    | '/onboarding'
     | '/rewards'
     | '/support'
   fileRoutesByTo: FileRoutesByTo
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/cashflow'
     | '/dashboard'
     | '/miles'
+    | '/onboarding'
     | '/rewards'
     | '/support'
   id:
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cashflow'
     | '/_authenticated/dashboard'
     | '/_authenticated/miles'
+    | '/_authenticated/onboarding'
     | '/_authenticated/rewards'
     | '/_authenticated/support'
   fileRoutesById: FileRoutesById
@@ -173,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRewardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/miles': {
       id: '/_authenticated/miles'
       path: '/miles'
@@ -209,6 +228,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCashflowRoute: typeof AuthenticatedCashflowRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMilesRoute: typeof AuthenticatedMilesRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
 }
@@ -218,6 +238,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCashflowRoute: AuthenticatedCashflowRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMilesRoute: AuthenticatedMilesRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
 }
