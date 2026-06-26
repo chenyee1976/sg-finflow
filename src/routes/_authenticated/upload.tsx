@@ -29,7 +29,7 @@ function UploadPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("statements")
-        .select("id, file_name, status, transaction_count, uploaded_at, bank_or_card")
+        .select("id, file_name, file_path, status, transaction_count, uploaded_at, bank_or_card")
         .order("uploaded_at", { ascending: false })
         .limit(20);
       if (error) throw error;
@@ -173,7 +173,7 @@ function UploadPage() {
                   <StatusIcon status={s.status} />
                   <button
                     type="button"
-                    onClick={() => deleteStatement(s.id, null)}
+                    onClick={() => deleteStatement(s.id, s.file_path)}
                     className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:text-destructive"
                     aria-label="Delete"
                   >
