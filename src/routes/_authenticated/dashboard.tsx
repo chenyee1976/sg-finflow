@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Wallet, TrendingUp, PieChart, Sparkles } from "lucide-react";
+import { Wallet, TrendingUp, PieChart, Sparkles, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
 
@@ -53,6 +53,21 @@ function DashboardPage() {
       </header>
 
       <div className="space-y-4 px-4 pt-4">
+        <Link
+          to="/upload"
+          className="flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground shadow-md shadow-primary/30"
+        >
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/15">
+            <FileUp className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Upload a statement</p>
+            <p className="text-xs text-primary-foreground/80">
+              PDF, CSV or photo — we extract transactions with AI
+            </p>
+          </div>
+        </Link>
+
         <WidgetCard icon={<Wallet className="h-4 w-4" />} title="Cash Position">
           <p className="mt-2 text-3xl font-bold text-primary">S$0.00</p>
           <p className="mt-1 text-xs text-muted-foreground">No accounts yet</p>
