@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plane, Plus, Wallet, Trash2, Target } from "lucide-react";
+import { Plane, Plus, Wallet as WalletIcon, Trash2, Target } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/miles")({
   component: MilesPage,
 });
 
-type Wallet = {
+type WalletRow = {
   id: string;
   program_name: string;
   program_type: string | null;
@@ -50,7 +50,7 @@ function MilesPage() {
         .select("id, program_name, program_type, balance, expiry_date")
         .order("balance", { ascending: false });
       if (error) throw error;
-      return data as Wallet[];
+      return data as WalletRow[];
     },
   });
 
@@ -92,7 +92,7 @@ function MilesPage() {
       <div className="space-y-5 px-4 pt-4">
         <div className="rounded-2xl bg-primary p-5 text-primary-foreground shadow-md shadow-primary/30">
           <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4" />
+            <WalletIcon className="h-4 w-4" />
             <span className="text-xs font-semibold uppercase tracking-wide">Total miles</span>
           </div>
           <p className="mt-2 text-3xl font-bold">{totalMiles.toLocaleString("en-SG")}</p>
