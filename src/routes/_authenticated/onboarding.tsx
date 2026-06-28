@@ -36,7 +36,7 @@ const CARD_REWARD_TYPES = [
 ] as const;
 
 type RewardFocus = "miles" | "cashback" | "both";
-type BankRow = { bank_name: string; account_type: string; account_name: string };
+type BankRow = { bank_name: string; account_type: string; account_name: string; account_number: string };
 type CardRow = { bank_name: string; card_name: string; reward_type: string; last_four: string };
 
 function OnboardingPage() {
@@ -54,7 +54,7 @@ function OnboardingPage() {
 
   // Step 3
   const [banks, setBanks] = useState<BankRow[]>([
-    { bank_name: "", account_type: "Savings", account_name: "" },
+    { bank_name: "", account_type: "Savings", account_name: "", account_number: "" },
   ]);
 
   // Step 4
@@ -134,6 +134,7 @@ function OnboardingPage() {
           bank_name: b.bank_name,
           account_type: b.account_type,
           account_name: b.account_name.trim() || null,
+          account_number: b.account_number.trim() || null,
         }));
       if (validBanks.length) {
         const { error } = await supabase.from("bank_accounts").insert(validBanks);
@@ -361,7 +362,7 @@ function StepBanks({
     setBanks(banks.filter((_, idx) => idx !== i));
   }
   function add() {
-    setBanks([...banks, { bank_name: "", account_type: "Savings", account_name: "" }]);
+    setBanks([...banks, { bank_name: "", account_type: "Savings", account_name: "", account_number: "" }]);
   }
 
   return (
@@ -423,6 +424,16 @@ function StepBanks({
                     maxLength={50}
                   />
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Bank account number</Label>
+                <Input
+                  value={b.account_number}
+                  onChange={(e) => update(i, { account_number: e.target.value.replace(/[^0-9-]/g, "") })}
+                  placeholder="e.g. 123-45678-9"
+                  inputMode="numeric"
+                  maxLength={30}
+                />
               </div>
             </div>
           </div>
