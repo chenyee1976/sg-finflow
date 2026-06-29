@@ -381,7 +381,19 @@ function StepBanks({
     setBanks(banks.filter((_, idx) => idx !== i));
   }
   function add() {
-    setBanks([...banks, { bank_name: "", account_type: "Savings", account_name: "", account_number: "" }]);
+    setBanks([
+      ...banks,
+      {
+        bank_name: "",
+        account_type: "Savings",
+        account_name: "",
+        account_number: "",
+        currency: "SGD",
+        currency_other: "",
+        account_subtype: "",
+        account_subtype_other: "",
+      },
+    ]);
   }
 
   return (
@@ -413,7 +425,13 @@ function StepBanks({
                 <select
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   value={b.bank_name}
-                  onChange={(e) => update(i, { bank_name: e.target.value })}
+                  onChange={(e) =>
+                    update(i, {
+                      bank_name: e.target.value,
+                      account_subtype: "",
+                      account_subtype_other: "",
+                    })
+                  }
                 >
                   <option value="">Select bank…</option>
                   {SG_BANKS.map((name) => (
@@ -427,7 +445,13 @@ function StepBanks({
                   <select
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                     value={b.account_type}
-                    onChange={(e) => update(i, { account_type: e.target.value })}
+                    onChange={(e) =>
+                      update(i, {
+                        account_type: e.target.value as AccountType,
+                        account_subtype: "",
+                        account_subtype_other: "",
+                      })
+                    }
                   >
                     {ACCOUNT_TYPES.map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -444,15 +468,72 @@ function StepBanks({
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Currency</Label>
+                  <select
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    value={b.currency}
+                    onChange={(e) => update(i, { currency: e.target.value })}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  {b.currency === "Others" && (
+                    <Input
+                      className="mt-2"
+                      value={b.currency_other}
+                      onChange={(e) =>
+                        update(i, { currency_other: e.target.value.toUpperCase().slice(0, 6) })
+                      }
+                      placeholder="e.g. AUD"
+                      maxLength={6}
+                    />
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Bank account number</Label>
+                  <Input
+                    value={b.account_number}
+                    onChange={(e) =>
+                      update(i, { account_number: e.target.value.replace(/[^0-9-]/g, "") })
+                    }
+                    placeholder="e.g. 123-45678-9"
+                    inputMode="numeric"
+                    maxLength={30}
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
-                <Label>Bank account number</Label>
-                <Input
-                  value={b.account_number}
-                  onChange={(e) => update(i, { account_number: e.target.value.replace(/[^0-9-]/g, "") })}
-                  placeholder="e.g. 123-45678-9"
-                  inputMode="numeric"
-                  maxLength={30}
-                />
+                <Label>Bank Account Type</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm disabled:opacity-60"
+                  value={b.account_subtype}
+                  disabled={!b.bank_name}
+                  onChange={(e) =>
+                    update(i, { account_subtype: e.target.value, account_subtype_other: "" })
+                  }
+                >
+                  <option value="">
+                    {b.bank_name ? "Select account…" : "Pick a bank first"}
+                  </option>
+                  {b.bank_name &&
+                    getSubtypeOptions(b.bank_name, b.account_type).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                </select>
+                {b.account_subtype === OTHER_SUBTYPE && (
+                  <Input
+                    className="mt-2"
+                    value={b.account_subtype_other}
+                    onChange={(e) => update(i, { account_subtype_other: e.target.value })}
+                    placeholder="Enter account name"
+                    maxLength={80}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -460,6 +541,12 @@ function StepBanks({
         <Button type="button" variant="outline" className="w-full" onClick={add}>
           + Add another account
         </Button>
+        <p className="px-1 pt-2 text-[11px] leading-relaxed text-muted-foreground">
+          Phase 1 includes 4 account types (Savings, Current, Multi-Currency, Fixed/Term Deposits),
+          7 currencies (SGD, USD, MYR, EUR, GBP, CNY, JPY) plus an "Others" input, and the bank
+          account products listed under <em>Bank Account Type</em>. Additional types, currencies and
+          products will be added in the next phase.
+        </p>
       </div>
     </div>
   );
