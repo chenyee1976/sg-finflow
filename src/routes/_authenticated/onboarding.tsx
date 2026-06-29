@@ -16,6 +16,12 @@ import {
   getSubtypeOptions,
   type AccountType,
 } from "@/lib/bank-accounts-catalog";
+import {
+  CARD_TYPES,
+  CARD_OTHER,
+  getCardOptions,
+  formatCardNumber,
+} from "@/lib/credit-cards-catalog";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({ meta: [{ title: "Get started — CashFlow AI" }] }),
@@ -39,7 +45,14 @@ type BankRow = {
   account_subtype: string;
   account_subtype_other: string;
 };
-type CardRow = { bank_name: string; card_name: string; reward_type: string; last_four: string };
+type CardRow = {
+  bank_name: string;
+  card_name: string;
+  card_name_other: string;
+  card_type: string;
+  reward_type: string;
+  card_number: string;
+};
 
 function OnboardingPage() {
   const navigate = useNavigate();
@@ -70,7 +83,14 @@ function OnboardingPage() {
 
   // Step 4
   const [cards, setCards] = useState<CardRow[]>([
-    { bank_name: "", card_name: "", reward_type: "miles", last_four: "" },
+    {
+      bank_name: "",
+      card_name: "",
+      card_name_other: "",
+      card_type: "",
+      reward_type: "miles",
+      card_number: "",
+    },
   ]);
 
   // Skip if already onboarded; prefill name
@@ -165,9 +185,13 @@ function OnboardingPage() {
         .map((c) => ({
           user_id: uid,
           bank_name: c.bank_name,
-          card_name: c.card_name.trim(),
+          card_name:
+            c.card_name === CARD_OTHER
+              ? c.card_name_other.trim() || "Other"
+              : c.card_name.trim(),
+          card_type: c.card_type || null,
           reward_type: c.reward_type,
-          last_four: c.last_four.trim() || null,
+          last_four: c.card_number.trim() || null,
         }));
       if (validCards.length) {
         const { error } = await supabase.from("credit_cards").insert(validCards);
