@@ -8,26 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  ACCOUNT_TYPES,
+  CURRENCIES,
+  SG_BANKS,
+  OTHER_SUBTYPE,
+  getSubtypeOptions,
+  type AccountType,
+} from "@/lib/bank-accounts-catalog";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({ meta: [{ title: "Get started — CashFlow AI" }] }),
   component: OnboardingPage,
 });
-
-const SG_BANKS = [
-  "DBS / POSB",
-  "OCBC",
-  "UOB",
-  "Standard Chartered",
-  "HSBC",
-  "Citibank",
-  "Maybank",
-  "CIMB",
-  "Trust Bank",
-  "GXS Bank",
-] as const;
-
-const ACCOUNT_TYPES = ["Savings", "Current", "Multiplier", "Joint"] as const;
 
 const CARD_REWARD_TYPES = [
   { value: "miles", label: "Miles" },
@@ -36,7 +29,16 @@ const CARD_REWARD_TYPES = [
 ] as const;
 
 type RewardFocus = "miles" | "cashback" | "both";
-type BankRow = { bank_name: string; account_type: string; account_name: string; account_number: string };
+type BankRow = {
+  bank_name: string;
+  account_type: AccountType;
+  account_name: string;
+  account_number: string;
+  currency: string;
+  currency_other: string;
+  account_subtype: string;
+  account_subtype_other: string;
+};
 type CardRow = { bank_name: string; card_name: string; reward_type: string; last_four: string };
 
 function OnboardingPage() {
@@ -54,7 +56,16 @@ function OnboardingPage() {
 
   // Step 3
   const [banks, setBanks] = useState<BankRow[]>([
-    { bank_name: "", account_type: "Savings", account_name: "", account_number: "" },
+    {
+      bank_name: "",
+      account_type: "Savings",
+      account_name: "",
+      account_number: "",
+      currency: "SGD",
+      currency_other: "",
+      account_subtype: "",
+      account_subtype_other: "",
+    },
   ]);
 
   // Step 4
@@ -135,6 +146,14 @@ function OnboardingPage() {
           account_type: b.account_type,
           account_name: b.account_name.trim() || null,
           account_number: b.account_number.trim() || null,
+          currency:
+            b.currency === "Others"
+              ? (b.currency_other.trim().toUpperCase() || "SGD")
+              : b.currency,
+          account_subtype:
+            b.account_subtype === OTHER_SUBTYPE
+              ? (b.account_subtype_other.trim() || null)
+              : (b.account_subtype || null),
         }));
       if (validBanks.length) {
         const { error } = await supabase.from("bank_accounts").insert(validBanks);
