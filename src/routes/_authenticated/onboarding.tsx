@@ -16,6 +16,12 @@ import {
   getSubtypeOptions,
   type AccountType,
 } from "@/lib/bank-accounts-catalog";
+import {
+  CARD_TYPES,
+  CARD_OTHER,
+  getCardOptions,
+  formatCardNumber,
+} from "@/lib/credit-cards-catalog";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({ meta: [{ title: "Get started — CashFlow AI" }] }),
@@ -39,7 +45,14 @@ type BankRow = {
   account_subtype: string;
   account_subtype_other: string;
 };
-type CardRow = { bank_name: string; card_name: string; reward_type: string; last_four: string };
+type CardRow = {
+  bank_name: string;
+  card_name: string;
+  card_name_other: string;
+  card_type: string;
+  reward_type: string;
+  card_number: string;
+};
 
 function OnboardingPage() {
   const navigate = useNavigate();
@@ -70,7 +83,14 @@ function OnboardingPage() {
 
   // Step 4
   const [cards, setCards] = useState<CardRow[]>([
-    { bank_name: "", card_name: "", reward_type: "miles", last_four: "" },
+    {
+      bank_name: "",
+      card_name: "",
+      card_name_other: "",
+      card_type: "",
+      reward_type: "miles",
+      card_number: "",
+    },
   ]);
 
   // Skip if already onboarded; prefill name
@@ -165,9 +185,13 @@ function OnboardingPage() {
         .map((c) => ({
           user_id: uid,
           bank_name: c.bank_name,
-          card_name: c.card_name.trim(),
+          card_name:
+            c.card_name === CARD_OTHER
+              ? c.card_name_other.trim() || "Other"
+              : c.card_name.trim(),
+          card_type: c.card_type || null,
           reward_type: c.reward_type,
-          last_four: c.last_four.trim() || null,
+          last_four: c.card_number.trim() || null,
         }));
       if (validCards.length) {
         const { error } = await supabase.from("credit_cards").insert(validCards);
@@ -566,7 +590,17 @@ function StepCards({
     setCards(cards.filter((_, idx) => idx !== i));
   }
   function add() {
-    setCards([...cards, { bank_name: "", card_name: "", reward_type: "miles", last_four: "" }]);
+    setCards([
+      ...cards,
+      {
+        bank_name: "",
+        card_name: "",
+        card_name_other: "",
+        card_type: "",
+        reward_type: "miles",
+        card_number: "",
+      },
+    ]);
   }
 
   return (
@@ -608,38 +642,75 @@ function StepCards({
               </div>
               <div className="space-y-1.5">
                 <Label>Card name</Label>
-                <Input
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm disabled:opacity-60"
                   value={c.card_name}
-                  onChange={(e) => update(i, { card_name: e.target.value })}
-                  placeholder="e.g. KrisFlyer UOB"
-                  maxLength={60}
+                  disabled={!c.bank_name}
+                  onChange={(e) =>
+                    update(i, { card_name: e.target.value, card_name_other: "" })
+                  }
+                >
+                  <option value="">
+                    {c.bank_name ? "Select card…" : "Pick a bank first"}
+                  </option>
+                  {getCardOptions(c.bank_name, c.reward_type).map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                {c.card_name === CARD_OTHER && (
+                  <Input
+                    className="mt-2"
+                    value={c.card_name_other}
+                    onChange={(e) => update(i, { card_name_other: e.target.value })}
+                    placeholder="Enter card name"
+                    maxLength={80}
+                  />
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Credit card number</Label>
+                <Input
+                  inputMode="numeric"
+                  value={c.card_number}
+                  onChange={(e) =>
+                    update(i, { card_number: formatCardNumber(e.target.value) })
+                  }
+                  placeholder="1234-5678-9012-3456"
+                  maxLength={19}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Reward type</Label>
-                  <select
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                    value={c.reward_type}
-                    onChange={(e) => update(i, { reward_type: e.target.value })}
-                  >
-                    {CARD_REWARD_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Last 4 digits</Label>
-                  <Input
-                    inputMode="numeric"
-                    value={c.last_four}
-                    onChange={(e) =>
-                      update(i, { last_four: e.target.value.replace(/\D/g, "").slice(0, 4) })
-                    }
-                    placeholder="1234"
-                    maxLength={4}
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <Label>Card type</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={c.card_type}
+                  onChange={(e) => update(i, { card_type: e.target.value })}
+                >
+                  <option value="">Select card type…</option>
+                  {CARD_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Reward type</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={c.reward_type}
+                  onChange={(e) =>
+                    update(i, {
+                      reward_type: e.target.value,
+                      card_name: "",
+                      card_name_other: "",
+                    })
+                  }
+                >
+                  {CARD_REWARD_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -647,6 +718,12 @@ function StepCards({
         <Button type="button" variant="outline" className="w-full" onClick={add}>
           + Add another card
         </Button>
+        <p className="px-1 pt-2 text-[11px] leading-relaxed text-muted-foreground">
+          Phase 1 includes a selected set of issuing banks (DBS/POSB, OCBC, UOB, Standard Chartered,
+          Citibank, HSBC, Maybank, AMEX, Trust Bank, Maribank) and their listed cards. Additional
+          banks and cards will be added in the next phase — use <em>Other (specify)</em> if your
+          card isn't listed.
+        </p>
       </div>
     </div>
   );
