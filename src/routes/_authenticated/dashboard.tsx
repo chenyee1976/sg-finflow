@@ -1,9 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Wallet, TrendingUp, PieChart, Sparkles, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — CashFlow AI" }] }),
@@ -40,9 +47,16 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bank_accounts")
-        .select("id, current_balance");
+        .select("id, bank_name, account_name, currency, current_balance, balance_as_of");
       if (error) throw error;
-      return data as { id: string; current_balance: number }[];
+      return data as {
+        id: string;
+        bank_name: string | null;
+        account_name: string | null;
+        currency: string | null;
+        current_balance: number;
+        balance_as_of: string | null;
+      }[];
     },
   });
 
@@ -86,6 +100,10 @@ function DashboardPage() {
   const m1 = monthTotals(periods.m1.start, periods.m1.end);
   const m2 = monthTotals(periods.m2.start, periods.m2.end);
 
+  const [breakdown, setBreakdown] = useState<
+    null | { title: string; asOf: string; total: number }
+  >(null);
+
   return (
     <AppShell showMiles={showMiles}>
       <header className="px-4 pt-6 pb-2">
@@ -128,25 +146,46 @@ function DashboardPage() {
               dateLabel={`as of ${formatDMY(periods.today)}`}
               amount={currentBalance}
               highlight
+              onClick={() =>
+                setBreakdown({
+                  title: "Current balance",
+                  asOf: periods.today,
+                  total: currentBalance,
+                })
+              }
             />
             <BalanceRow
               label="Previous month balance"
               dateLabel={`as of ${formatDMY(periods.prevMonthEnd)}`}
               amount={balanceAt(periods.prevMonthEnd)}
+              onClick={() =>
+                setBreakdown({
+                  title: "Previous month balance",
+                  asOf: periods.prevMonthEnd,
+                  total: balanceAt(periods.prevMonthEnd),
+                })
+              }
             />
             <BalanceRow
               label="Previous year balance"
               dateLabel={`as of ${formatDMY(periods.prevYearEnd)}`}
               amount={balanceAt(periods.prevYearEnd)}
+              onClick={() =>
+                setBreakdown({
+                  title: "Previous year balance",
+                  asOf: periods.prevYearEnd,
+                  total: balanceAt(periods.prevYearEnd),
+                })
+              }
             />
           </div>
         </WidgetCard>
 
         <WidgetCard icon={<TrendingUp className="h-4 w-4" />} title="Monthly Income">
           <div className="mt-3 space-y-2">
-            <BalanceRow label="Current month" dateLabel={periods.m0.label} amount={m0.income} highlight />
-            <BalanceRow label="Last month" dateLabel={periods.m1.label} amount={m1.income} />
-            <BalanceRow label="2 months ago" dateLabel={periods.m2.label} amount={m2.income} />
+            <BalanceRow label="Current month" dateLabel={periods.m0.label} amount={m0.income} highlight income />
+            <BalanceRow label="Last month" dateLabel={periods.m1.label} amount={m1.income} income />
+            <BalanceRow label="2 months ago" dateLabel={periods.m2.label} amount={m2.income} income />
           </div>
         </WidgetCard>
 
@@ -172,6 +211,61 @@ function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!breakdown} onOpenChange={(o) => !o && setBreakdown(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{breakdown?.title}</DialogTitle>
+            <DialogDescription>
+              Breakdown by bank account as of {breakdown ? formatDMY(breakdown.asOf) : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {(accounts ?? []).length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No bank accounts yet. Upload a statement to add one.
+              </p>
+            )}
+            {(accounts ?? []).map((a) => (
+              <div
+                key={a.id}
+                className="flex items-start justify-between gap-3 rounded-lg border border-border/60 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {a.account_name ?? a.bank_name ?? "Account"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.bank_name ?? ""}
+                    {a.balance_as_of ? ` · as of ${formatDMY(a.balance_as_of)}` : ""}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold tabular-nums text-foreground">
+                  {a.currency ?? "SGD"}{" "}
+                  {Number(a.current_balance || 0).toLocaleString("en-SG", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+            ))}
+            {(accounts ?? []).length > 0 && (
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <p className="text-sm font-semibold">Total</p>
+                <p className="text-sm font-bold tabular-nums text-primary">
+                  S${(breakdown?.total ?? 0).toLocaleString("en-SG", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground pt-1">
+              Per-account historical balances reflect the most recent statement on file.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
@@ -205,21 +299,33 @@ function BalanceRow({
   amount,
   highlight,
   negative,
+  income,
+  onClick,
 }: {
   label: string;
   dateLabel: string;
   amount: number;
   highlight?: boolean;
   negative?: boolean;
+  income?: boolean;
+  onClick?: () => void;
 }) {
   const colorClass = negative
     ? "text-destructive"
-    : highlight
+    : income
       ? "text-primary"
-      : "text-foreground";
+      : highlight
+        ? "text-primary"
+        : "text-foreground";
   const sizeClass = highlight ? "text-lg font-bold" : "text-base font-semibold";
+  const Wrapper: "button" | "div" = onClick ? "button" : "div";
   return (
-    <div className="flex items-start justify-between gap-3 border-t border-border/60 pt-2 first:border-t-0 first:pt-0">
+    <Wrapper
+      onClick={onClick}
+      className={`flex w-full items-start justify-between gap-3 border-t border-border/60 pt-2 first:border-t-0 first:pt-0 text-left ${
+        onClick ? "cursor-pointer hover:bg-accent/40 rounded-md -mx-1 px-1" : ""
+      }`}
+    >
       <div className="min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">{dateLabel}</p>
@@ -230,7 +336,7 @@ function BalanceRow({
           maximumFractionDigits: 2,
         })}
       </p>
-    </div>
+    </Wrapper>
   );
 }
 
