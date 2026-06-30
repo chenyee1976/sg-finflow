@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Wallet, TrendingUp, PieChart, Sparkles, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
@@ -32,6 +32,59 @@ function DashboardPage() {
 
   const showMiles = profile?.reward_focus !== "cashback";
   const greeting = getGreeting();
+
+  const periods = useMemo(buildPeriods, []);
+
+  const { data: accounts } = useQuery({
+    queryKey: ["bank_accounts_balances"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bank_accounts")
+        .select("id, current_balance");
+      if (error) throw error;
+      return data as { id: string; current_balance: number }[];
+    },
+  });
+
+  const { data: txns } = useQuery({
+    queryKey: ["dashboard_txns", periods.earliest],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("date, amount")
+        .gte("date", periods.earliest);
+      if (error) throw error;
+      return data as { date: string; amount: number }[];
+    },
+  });
+
+  const currentBalance = (accounts ?? []).reduce(
+    (s, a) => s + Number(a.current_balance || 0),
+    0,
+  );
+  // Historical balance = current - sum(amount where date > asOf)
+  const balanceAt = (asOf: string) => {
+    const delta = (txns ?? [])
+      .filter((t) => t.date > asOf)
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    return currentBalance - delta;
+  };
+
+  const monthTotals = (startISO: string, endISO: string) => {
+    let income = 0;
+    let expenses = 0;
+    for (const t of txns ?? []) {
+      if (t.date < startISO || t.date > endISO) continue;
+      const a = Number(t.amount || 0);
+      if (a >= 0) income += a;
+      else expenses += -a;
+    }
+    return { income, expenses };
+  };
+
+  const m0 = monthTotals(periods.m0.start, periods.m0.end);
+  const m1 = monthTotals(periods.m1.start, periods.m1.end);
+  const m2 = monthTotals(periods.m2.start, periods.m2.end);
 
   return (
     <AppShell showMiles={showMiles}>
@@ -69,18 +122,40 @@ function DashboardPage() {
         </Link>
 
         <WidgetCard icon={<Wallet className="h-4 w-4" />} title="Cash Position">
-          <p className="mt-2 text-3xl font-bold text-primary">S$0.00</p>
-          <p className="mt-1 text-xs text-muted-foreground">No accounts yet</p>
+          <div className="mt-3 space-y-2">
+            <BalanceRow
+              label="Current balance"
+              dateLabel={`as of ${formatDMY(periods.today)}`}
+              amount={currentBalance}
+              highlight
+            />
+            <BalanceRow
+              label="Previous month balance"
+              dateLabel={`as of ${formatDMY(periods.prevMonthEnd)}`}
+              amount={balanceAt(periods.prevMonthEnd)}
+            />
+            <BalanceRow
+              label="Previous year balance"
+              dateLabel={`as of ${formatDMY(periods.prevYearEnd)}`}
+              amount={balanceAt(periods.prevYearEnd)}
+            />
+          </div>
         </WidgetCard>
 
         <WidgetCard icon={<TrendingUp className="h-4 w-4" />} title="Monthly Income">
-          <p className="mt-2 text-3xl font-bold">S$0.00</p>
-          <p className="mt-1 text-xs text-muted-foreground">Upload a statement to see income</p>
+          <div className="mt-3 space-y-2">
+            <BalanceRow label="Current month" dateLabel={periods.m0.label} amount={m0.income} highlight />
+            <BalanceRow label="Last month" dateLabel={periods.m1.label} amount={m1.income} />
+            <BalanceRow label="2 months ago" dateLabel={periods.m2.label} amount={m2.income} />
+          </div>
         </WidgetCard>
 
         <WidgetCard icon={<PieChart className="h-4 w-4" />} title="Monthly Expenses">
-          <p className="mt-2 text-3xl font-bold">S$0.00</p>
-          <p className="mt-1 text-xs text-muted-foreground">Top categories will appear here</p>
+          <div className="mt-3 space-y-2">
+            <BalanceRow label="Current month" dateLabel={periods.m0.label} amount={m0.expenses} highlight />
+            <BalanceRow label="Last month" dateLabel={periods.m1.label} amount={m1.expenses} />
+            <BalanceRow label="2 months ago" dateLabel={periods.m2.label} amount={m2.expenses} />
+          </div>
         </WidgetCard>
 
         <div className="rounded-2xl border border-primary/20 bg-primary-light p-4">
@@ -122,6 +197,66 @@ function WidgetCard({
       </div>
     </div>
   );
+}
+
+function BalanceRow({
+  label,
+  dateLabel,
+  amount,
+  highlight,
+}: {
+  label: string;
+  dateLabel: string;
+  amount: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-t border-border/60 pt-2 first:border-t-0 first:pt-0">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{dateLabel}</p>
+      </div>
+      <p
+        className={
+          highlight
+            ? "text-lg font-bold tabular-nums text-primary"
+            : "text-base font-semibold tabular-nums text-foreground"
+        }
+      >
+        {amount < 0 ? "-" : ""}S${Math.abs(amount).toLocaleString("en-SG", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}
+      </p>
+    </div>
+  );
+}
+
+function iso(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDMY(s: string) {
+  const [y, m, d] = s.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function buildPeriods() {
+  const now = new Date();
+  const today = iso(now);
+  const prevMonthEnd = iso(new Date(now.getFullYear(), now.getMonth(), 0));
+  const prevYearEnd = iso(new Date(now.getFullYear() - 1, 11, 31));
+  const monthRange = (offset: number) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const start = iso(new Date(d.getFullYear(), d.getMonth(), 1));
+    const end = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    const label = d.toLocaleDateString("en-SG", { month: "long", year: "numeric" });
+    return { start, end, label };
+  };
+  const m0 = monthRange(0);
+  const m1 = monthRange(-1);
+  const m2 = monthRange(-2);
+  return { today, prevMonthEnd, prevYearEnd, m0, m1, m2, earliest: m2.start };
 }
 
 function getGreeting() {
