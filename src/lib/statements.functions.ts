@@ -19,6 +19,19 @@ const TxnSchema = z.object({
   period_end: z.string().optional().nullable(),
   bank_or_card: z.string().optional().nullable(),
   source_type: z.enum(["bank", "card"]).optional().nullable(),
+  accounts: z
+    .array(
+      z.object({
+        bank_name: z.string().optional().nullable(),
+        account_name: z.string().optional().nullable(),
+        account_number: z.string().optional().nullable(),
+        currency: z.string().optional().nullable(),
+        balance: z.number().optional().nullable(),
+        balance_as_of: z.string().optional().nullable(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 const SYSTEM_PROMPT = `You are a financial statement parser. Extract every transaction from the provided statement (Singapore bank or credit card).
@@ -29,6 +42,16 @@ Return STRICT JSON only, matching this shape:
   "period_end": "YYYY-MM-DD" | null,
   "bank_or_card": string | null,
   "source_type": "bank" | "card" | null,
+  "accounts": [
+    {
+      "bank_name": string | null,        // e.g. "POSB", "DBS", "OCBC"
+      "account_name": string | null,     // e.g. "POSB Passbook Savings Account"
+      "account_number": string | null,   // as shown, keep dashes e.g. "199-00618-5"
+      "currency": string | null,         // ISO code e.g. "SGD"
+      "balance": number | null,          // closing balance as of statement date
+      "balance_as_of": "YYYY-MM-DD" | null
+    }
+  ],
   "transactions": [
     {
       "date": "YYYY-MM-DD",
@@ -45,6 +68,7 @@ Rules:
 - Use ISO dates. If only DD/MM is present, infer year from the statement period.
 - amount is signed: spends/withdrawals are negative, income/credits are positive.
 - Skip running balances and summary rows. Only individual transactions.
+- For bank statements, populate "accounts" with every account listed in the Account Summary (name, number, currency, closing balance, as-of date). Even if there are no transactions, still return the account row(s).
 - No commentary, no markdown, JSON object only.`;
 
 export const extractStatement = createServerFn({ method: "POST" })
@@ -155,6 +179,64 @@ export const extractStatement = createServerFn({ method: "POST" })
     if (rows.length) {
       const { error: insErr } = await supabase.from("transactions").insert(rows);
       if (insErr) throw insErr;
+    }
+
+    // Upsert bank accounts extracted from the statement
+    for (const acc of parsed.accounts ?? []) {
+      if (!acc.account_name && !acc.account_number) continue;
+      const bankName = acc.bank_name ?? parsed.bank_or_card ?? "Unknown";
+      const accountName = acc.account_name ?? bankName;
+      const currency = acc.currency ?? "SGD";
+      const balance = Number(acc.balance ?? 0);
+      const asOf = acc.balance_as_of ?? parsed.period_end ?? null;
+
+      // Try to match an existing account
+      const { data: existing } = await supabase
+        .from("bank_accounts")
+        .select("id, account_number, account_name, bank_name, balance_as_of")
+        .eq("user_id", userId);
+
+      const normalize = (s: string | null | undefined) =>
+        (s ?? "").replace(/[\s-]/g, "").toLowerCase();
+
+      const match = (existing ?? []).find((r) => {
+        if (acc.account_number && r.account_number) {
+          return normalize(r.account_number) === normalize(acc.account_number);
+        }
+        return (
+          normalize(r.bank_name) === normalize(bankName) &&
+          normalize(r.account_name) === normalize(accountName)
+        );
+      });
+
+      if (match) {
+        // Only update balance if this statement is newer (or no prior date)
+        const shouldUpdate =
+          !match.balance_as_of || (asOf && asOf >= match.balance_as_of);
+        if (shouldUpdate) {
+          await supabase
+            .from("bank_accounts")
+            .update({
+              current_balance: balance,
+              balance_as_of: asOf,
+              currency,
+              account_number: acc.account_number ?? null,
+            })
+            .eq("id", match.id);
+        }
+      } else {
+        await supabase.from("bank_accounts").insert({
+          user_id: userId,
+          bank_name: bankName,
+          account_name: accountName,
+          account_type: "Savings",
+          account_number: acc.account_number ?? null,
+          currency,
+          opening_balance: balance,
+          current_balance: balance,
+          balance_as_of: asOf,
+        });
+      }
     }
 
     await supabase
