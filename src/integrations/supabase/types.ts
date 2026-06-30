@@ -20,6 +20,7 @@ export type Database = {
           account_number: string | null
           account_subtype: string | null
           account_type: string
+          balance_as_of: string | null
           bank_name: string
           created_at: string
           currency: string
@@ -33,6 +34,7 @@ export type Database = {
           account_number?: string | null
           account_subtype?: string | null
           account_type: string
+          balance_as_of?: string | null
           bank_name: string
           created_at?: string
           currency?: string
@@ -46,6 +48,7 @@ export type Database = {
           account_number?: string | null
           account_subtype?: string | null
           account_type?: string
+          balance_as_of?: string | null
           bank_name?: string
           created_at?: string
           currency?: string

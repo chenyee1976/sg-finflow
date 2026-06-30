@@ -152,9 +152,9 @@ function DashboardPage() {
 
         <WidgetCard icon={<PieChart className="h-4 w-4" />} title="Monthly Expenses">
           <div className="mt-3 space-y-2">
-            <BalanceRow label="Current month" dateLabel={periods.m0.label} amount={m0.expenses} highlight />
-            <BalanceRow label="Last month" dateLabel={periods.m1.label} amount={m1.expenses} />
-            <BalanceRow label="2 months ago" dateLabel={periods.m2.label} amount={m2.expenses} />
+            <BalanceRow label="Current month" dateLabel={periods.m0.label} amount={-m0.expenses} highlight negative />
+            <BalanceRow label="Last month" dateLabel={periods.m1.label} amount={-m1.expenses} negative />
+            <BalanceRow label="2 months ago" dateLabel={periods.m2.label} amount={-m2.expenses} negative />
           </div>
         </WidgetCard>
 
@@ -204,25 +204,27 @@ function BalanceRow({
   dateLabel,
   amount,
   highlight,
+  negative,
 }: {
   label: string;
   dateLabel: string;
   amount: number;
   highlight?: boolean;
+  negative?: boolean;
 }) {
+  const colorClass = negative
+    ? "text-destructive"
+    : highlight
+      ? "text-primary"
+      : "text-foreground";
+  const sizeClass = highlight ? "text-lg font-bold" : "text-base font-semibold";
   return (
     <div className="flex items-start justify-between gap-3 border-t border-border/60 pt-2 first:border-t-0 first:pt-0">
       <div className="min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">{dateLabel}</p>
       </div>
-      <p
-        className={
-          highlight
-            ? "text-lg font-bold tabular-nums text-primary"
-            : "text-base font-semibold tabular-nums text-foreground"
-        }
-      >
+      <p className={`${sizeClass} tabular-nums ${colorClass}`}>
         {amount < 0 ? "-" : ""}S${Math.abs(amount).toLocaleString("en-SG", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
