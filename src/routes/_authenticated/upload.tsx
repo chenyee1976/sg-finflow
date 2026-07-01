@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileUp, FileText, Loader2, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, FileUp, FileText, Loader2, CheckCircle2, AlertCircle, Trash2, Landmark, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ function UploadPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const extract = useServerFn(extractStatement);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<null | "bank" | "card">(null);
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
 
   const { data: statements, refetch } = useQuery({
@@ -37,12 +37,12 @@ function UploadPage() {
     },
   });
 
-  async function handleFile(file: File) {
+  async function handleFile(file: File, kind: "bank" | "card") {
     if (file.size > MAX_BYTES) {
       toast.error("File too large (max 20 MB)");
       return;
     }
-    setUploading(true);
+    setUploading(kind);
     setProgressLabel("Uploading…");
     try {
       const { data: userData, error: uErr } = await supabase.auth.getUser();
@@ -64,22 +64,27 @@ function UploadPage() {
           file_type: file.type,
           file_size_bytes: file.size,
           status: "pending",
+          source_type: kind,
         })
         .select("id")
         .single();
       if (insErr) throw insErr;
 
       await refetch();
-      setProgressLabel("Extracting transactions with AI…");
-      const result = await extract({ data: { statementId: stmt.id } });
+      setProgressLabel(
+        kind === "card" ? "Extracting card details with AI…" : "Extracting transactions with AI…",
+      );
+      const result = await extract({ data: { statementId: stmt.id, statementKind: kind } });
       toast.success(`Extracted ${result.count} transaction${result.count === 1 ? "" : "s"}`);
       await refetch();
       qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["credit_cards"] });
+      qc.invalidateQueries({ queryKey: ["bank_accounts_balances"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
       await refetch();
     } finally {
-      setUploading(false);
+      setUploading(null);
       setProgressLabel(null);
     }
   }
@@ -113,35 +118,24 @@ function UploadPage() {
           <h1 className="text-lg font-semibold tracking-tight">Upload statement</h1>
         </header>
 
-        <label
-          className={cn(
-            "mt-6 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-primary-light/40 p-8 text-center transition-colors",
-            uploading ? "cursor-wait opacity-70" : "cursor-pointer hover:bg-primary-light/60",
-          )}
-        >
-          <input
-            type="file"
-            accept={ACCEPTED}
-            className="hidden"
-            disabled={uploading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
-            }}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <UploadTile
+            kind="bank"
+            title="Bank statement"
+            icon={<Landmark className="h-6 w-6 text-primary" />}
+            uploading={uploading}
+            progressLabel={progressLabel}
+            onFile={(f) => handleFile(f, "bank")}
           />
-          {uploading ? (
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          ) : (
-            <FileUp className="h-8 w-8 text-primary" />
-          )}
-          <p className="mt-3 text-sm font-semibold">
-            {uploading ? progressLabel ?? "Working…" : "Tap to choose a file"}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            PDF, CSV, JPG or PNG · up to 20 MB
-          </p>
-        </label>
+          <UploadTile
+            kind="card"
+            title="Credit card statement"
+            icon={<CreditCard className="h-6 w-6 text-primary" />}
+            uploading={uploading}
+            progressLabel={progressLabel}
+            onFile={(f) => handleFile(f, "card")}
+          />
+        </div>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">
           We use AI to extract transactions. Review them after upload.
@@ -208,4 +202,48 @@ function StatusIcon({ status }: { status: string }) {
   if (status === "processing" || status === "pending")
     return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
   return null;
+}
+
+function UploadTile({
+  kind,
+  title,
+  icon,
+  uploading,
+  progressLabel,
+  onFile,
+}: {
+  kind: "bank" | "card";
+  title: string;
+  icon: React.ReactNode;
+  uploading: null | "bank" | "card";
+  progressLabel: string | null;
+  onFile: (f: File) => void;
+}) {
+  const isActive = uploading === kind;
+  const disabled = uploading !== null;
+  return (
+    <label
+      className={cn(
+        "flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-primary-light/40 p-4 text-center transition-colors hover:bg-primary-light/60",
+        disabled && "cursor-wait opacity-70 hover:bg-primary-light/40",
+      )}
+    >
+      <input
+        type="file"
+        accept={ACCEPTED}
+        className="hidden"
+        disabled={disabled}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
+      {isActive ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : icon}
+      <p className="mt-2 text-sm font-semibold leading-tight">{title}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        {isActive ? progressLabel ?? "Working…" : "PDF, CSV, JPG or PNG · 20 MB"}
+      </p>
+    </label>
+  );
 }
