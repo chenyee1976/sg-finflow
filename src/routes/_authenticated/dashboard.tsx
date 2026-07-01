@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Wallet, TrendingUp, PieChart, Sparkles, FileUp } from "lucide-react";
+import { Wallet, TrendingUp, PieChart, Sparkles, Landmark, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
 import {
@@ -124,20 +124,41 @@ function DashboardPage() {
       </header>
 
       <div className="space-y-4 px-4 pt-4">
-        <Link
-          to="/upload"
-          className="flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground shadow-md shadow-primary/30"
-        >
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/15">
-            <FileUp className="h-5 w-5" />
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Upload a statement
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              to="/upload"
+              className="flex flex-col items-start gap-2 rounded-2xl bg-primary p-3 text-primary-foreground shadow-md shadow-primary/30"
+            >
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15">
+                <Landmark className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-tight">Bank statement</p>
+                <p className="mt-0.5 text-[11px] text-primary-foreground/80">
+                  Balances & transactions
+                </p>
+              </div>
+            </Link>
+            <Link
+              to="/upload"
+              className="flex flex-col items-start gap-2 rounded-2xl bg-primary p-3 text-primary-foreground shadow-md shadow-primary/30"
+            >
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-tight">Credit card statement</p>
+                <p className="mt-0.5 text-[11px] text-primary-foreground/80">
+                  Card, spend & miles
+                </p>
+              </div>
+            </Link>
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold">Upload a statement</p>
-            <p className="text-xs text-primary-foreground/80">
-              PDF, CSV or photo — we extract transactions with AI
-            </p>
-          </div>
-        </Link>
+        </div>
 
         <WidgetCard icon={<Wallet className="h-4 w-4" />} title="Cash Position">
           <div className="mt-3 space-y-2">

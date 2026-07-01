@@ -21,7 +21,20 @@ type Txn = {
   miles_earned: number;
 };
 
-type Card = { id: string; bank_name: string; card_name: string; reward_type: string | null; last_four: string | null };
+type Card = {
+  id: string;
+  bank_name: string;
+  card_name: string;
+  reward_type: string | null;
+  last_four: string | null;
+  card_type: string | null;
+  payment_due_date: string | null;
+  miles_opening: number | null;
+  miles_earned: number | null;
+  miles_bonus: number | null;
+  miles_redeemed: number | null;
+  miles_ending: number | null;
+};
 
 function RewardsPage() {
   const { start, end, label } = useMemo(() => currentMonth(), []);
@@ -31,7 +44,9 @@ function RewardsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credit_cards")
-        .select("id, bank_name, card_name, reward_type, last_four");
+        .select(
+          "id, bank_name, card_name, reward_type, last_four, card_type, payment_due_date, miles_opening, miles_earned, miles_bonus, miles_redeemed, miles_ending",
+        );
       if (error) throw error;
       return data as Card[];
     },
@@ -111,24 +126,49 @@ function RewardsPage() {
             </p>
           ) : (
             <ul className="mt-3 space-y-2">
-              {cards.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-sm"
-                >
-                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary-light text-primary">
-                    <CreditCard className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{c.card_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.bank_name}
-                      {c.last_four ? ` · •••• ${c.last_four}` : ""}
-                      {c.reward_type ? ` · ${c.reward_type}` : ""}
-                    </p>
-                  </div>
-                </li>
-              ))}
+              {cards.map((c) => {
+                const hasMiles =
+                  c.miles_opening != null ||
+                  c.miles_earned != null ||
+                  c.miles_bonus != null ||
+                  c.miles_redeemed != null ||
+                  c.miles_ending != null;
+                return (
+                  <li key={c.id} className="rounded-xl bg-card p-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary-light text-primary">
+                        <CreditCard className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{c.card_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.bank_name}
+                          {c.card_type ? ` · ${c.card_type}` : ""}
+                          {c.last_four ? ` · •••• ${c.last_four}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    {hasMiles && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-primary-light/50 p-2 text-xs">
+                        <MilesRow label="Opening" value={c.miles_opening} />
+                        <MilesRow
+                          label="Earned + Bonus"
+                          value={
+                            (c.miles_earned ?? 0) + (c.miles_bonus ?? 0) || null
+                          }
+                          extra={
+                            c.miles_bonus != null && c.miles_earned != null
+                              ? `${c.miles_earned.toLocaleString("en-SG")} + ${c.miles_bonus.toLocaleString("en-SG")}`
+                              : undefined
+                          }
+                        />
+                        <MilesRow label="Redeemed / adj." value={c.miles_redeemed} />
+                        <MilesRow label="Ending" value={c.miles_ending} bold />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
@@ -195,6 +235,28 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</h2>
       </div>
       <p className="mt-2 text-xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function MilesRow({
+  label,
+  value,
+  extra,
+  bold,
+}: {
+  label: string;
+  value: number | null;
+  extra?: string;
+  bold?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={bold ? "text-sm font-bold text-primary" : "text-sm font-semibold"}>
+        {value != null ? `${value.toLocaleString("en-SG")} mi` : "—"}
+      </p>
+      {extra && <p className="text-[10px] text-muted-foreground">{extra}</p>}
     </div>
   );
 }

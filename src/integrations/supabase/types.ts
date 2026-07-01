@@ -63,31 +63,55 @@ export type Database = {
         Row: {
           bank_name: string
           card_name: string
+          card_number: string | null
           card_type: string | null
           created_at: string
           id: string
           last_four: string | null
+          miles_bonus: number | null
+          miles_earned: number | null
+          miles_ending: number | null
+          miles_opening: number | null
+          miles_redeemed: number | null
+          payment_due_date: string | null
           reward_type: string | null
+          statement_period_end: string | null
           user_id: string
         }
         Insert: {
           bank_name: string
           card_name: string
+          card_number?: string | null
           card_type?: string | null
           created_at?: string
           id?: string
           last_four?: string | null
+          miles_bonus?: number | null
+          miles_earned?: number | null
+          miles_ending?: number | null
+          miles_opening?: number | null
+          miles_redeemed?: number | null
+          payment_due_date?: string | null
           reward_type?: string | null
+          statement_period_end?: string | null
           user_id: string
         }
         Update: {
           bank_name?: string
           card_name?: string
+          card_number?: string | null
           card_type?: string | null
           created_at?: string
           id?: string
           last_four?: string | null
+          miles_bonus?: number | null
+          miles_earned?: number | null
+          miles_ending?: number | null
+          miles_opening?: number | null
+          miles_redeemed?: number | null
+          payment_due_date?: string | null
           reward_type?: string | null
+          statement_period_end?: string | null
           user_id?: string
         }
         Relationships: []
@@ -221,6 +245,7 @@ export type Database = {
           cashback_earned: number
           category: string | null
           created_at: string
+          credit_card_id: string | null
           currency: string
           date: string
           description: string | null
@@ -240,6 +265,7 @@ export type Database = {
           cashback_earned?: number
           category?: string | null
           created_at?: string
+          credit_card_id?: string | null
           currency?: string
           date: string
           description?: string | null
@@ -259,6 +285,7 @@ export type Database = {
           cashback_earned?: number
           category?: string | null
           created_at?: string
+          credit_card_id?: string | null
           currency?: string
           date?: string
           description?: string | null
@@ -271,6 +298,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_statement_id_fkey"
             columns: ["statement_id"]
