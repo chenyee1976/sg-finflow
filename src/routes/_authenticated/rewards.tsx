@@ -239,6 +239,28 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
   );
 }
 
+function MilesRow({
+  label,
+  value,
+  extra,
+  bold,
+}: {
+  label: string;
+  value: number | null;
+  extra?: string;
+  bold?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={bold ? "text-sm font-bold text-primary" : "text-sm font-semibold"}>
+        {value != null ? `${value.toLocaleString("en-SG")} mi` : "—"}
+      </p>
+      {extra && <p className="text-[10px] text-muted-foreground">{extra}</p>}
+    </div>
+  );
+}
+
 function currentMonth() {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
