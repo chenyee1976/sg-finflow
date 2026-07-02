@@ -75,11 +75,11 @@ function UploadPage() {
         kind === "card" ? "Extracting card details with AI…" : "Extracting transactions with AI…",
       );
       const result = await extract({ data: { statementId: stmt.id, statementKind: kind } });
-      toast.success(`Extracted ${result.count} transaction${result.count === 1 ? "" : "s"}`);
+      toast.success(
+        `Extracted ${result.count} transaction${result.count === 1 ? "" : "s"} — please review`,
+      );
       await refetch();
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["credit_cards"] });
-      qc.invalidateQueries({ queryKey: ["bank_accounts_balances"] });
+      navigate({ to: "/upload/review/$id", params: { id: stmt.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
       await refetch();
