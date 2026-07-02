@@ -186,6 +186,7 @@ export type Database = {
         Row: {
           ai_model_used: string | null
           bank_or_card: string | null
+          extracted_data: Json | null
           file_name: string
           file_path: string | null
           file_size_bytes: number | null
@@ -203,6 +204,7 @@ export type Database = {
         Insert: {
           ai_model_used?: string | null
           bank_or_card?: string | null
+          extracted_data?: Json | null
           file_name: string
           file_path?: string | null
           file_size_bytes?: number | null
@@ -220,6 +222,7 @@ export type Database = {
         Update: {
           ai_model_used?: string | null
           bank_or_card?: string | null
+          extracted_data?: Json | null
           file_name?: string
           file_path?: string | null
           file_size_bytes?: number | null

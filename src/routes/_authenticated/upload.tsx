@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileUp, FileText, Loader2, CheckCircle2, AlertCircle, Trash2, Landmark, CreditCard } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, CheckCircle2, AlertCircle, Trash2, Landmark, CreditCard, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ function UploadPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("statements")
-        .select("id, file_name, file_path, status, transaction_count, uploaded_at, bank_or_card")
+        .select("id, file_name, file_path, status, transaction_count, uploaded_at, bank_or_card, source_type")
         .order("uploaded_at", { ascending: false })
         .limit(20);
       if (error) throw error;
@@ -75,11 +75,11 @@ function UploadPage() {
         kind === "card" ? "Extracting card details with AI…" : "Extracting transactions with AI…",
       );
       const result = await extract({ data: { statementId: stmt.id, statementKind: kind } });
-      toast.success(`Extracted ${result.count} transaction${result.count === 1 ? "" : "s"}`);
+      toast.success(
+        `Extracted ${result.count} transaction${result.count === 1 ? "" : "s"} — please review`,
+      );
       await refetch();
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["credit_cards"] });
-      qc.invalidateQueries({ queryKey: ["bank_accounts_balances"] });
+      navigate({ to: "/upload/review/$id", params: { id: stmt.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
       await refetch();
@@ -164,7 +164,17 @@ function UploadPage() {
                       {s.bank_or_card ? ` · ${s.bank_or_card}` : ""}
                     </p>
                   </div>
-                  <StatusIcon status={s.status} />
+                  {s.status === "review" ? (
+                    <Link
+                      to="/upload/review/$id"
+                      params={{ id: s.id }}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground"
+                    >
+                      <Eye className="h-3 w-3" /> Review
+                    </Link>
+                  ) : (
+                    <StatusIcon status={s.status} />
+                  )}
                   <button
                     type="button"
                     onClick={() => deleteStatement(s.id, s.file_path)}
@@ -191,6 +201,7 @@ function UploadPage() {
 
 function statusLabel(s: string) {
   if (s === "completed") return "Completed";
+  if (s === "review") return "Awaiting review";
   if (s === "processing") return "Processing";
   if (s === "failed") return "Failed";
   return "Pending";
