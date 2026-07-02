@@ -20,6 +20,7 @@ import { Route as AuthenticatedMilesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCashflowRouteImport } from './routes/_authenticated/cashflow'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedUploadReviewIdRouteImport } from './routes/_authenticated/upload.review.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -75,6 +76,12 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedUploadReviewIdRoute =
+  AuthenticatedUploadReviewIdRouteImport.update({
+    id: '/review/$id',
+    path: '/review/$id',
+    getParentRoute: () => AuthenticatedUploadRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -86,7 +93,8 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
-  '/upload': typeof AuthenticatedUploadRoute
+  '/upload': typeof AuthenticatedUploadRouteWithChildren
+  '/upload/review/$id': typeof AuthenticatedUploadReviewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -98,7 +106,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
-  '/upload': typeof AuthenticatedUploadRoute
+  '/upload': typeof AuthenticatedUploadRouteWithChildren
+  '/upload/review/$id': typeof AuthenticatedUploadReviewIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,7 +121,8 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
-  '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/upload': typeof AuthenticatedUploadRouteWithChildren
+  '/_authenticated/upload/review/$id': typeof AuthenticatedUploadReviewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/rewards'
     | '/support'
     | '/upload'
+    | '/upload/review/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/rewards'
     | '/support'
     | '/upload'
+    | '/upload/review/$id'
   id:
     | '__root__'
     | '/'
@@ -152,6 +164,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rewards'
     | '/_authenticated/support'
     | '/_authenticated/upload'
+    | '/_authenticated/upload/review/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -239,8 +252,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/upload/review/$id': {
+      id: '/_authenticated/upload/review/$id'
+      path: '/review/$id'
+      fullPath: '/upload/review/$id'
+      preLoaderRoute: typeof AuthenticatedUploadReviewIdRouteImport
+      parentRoute: typeof AuthenticatedUploadRoute
+    }
   }
 }
+
+interface AuthenticatedUploadRouteChildren {
+  AuthenticatedUploadReviewIdRoute: typeof AuthenticatedUploadReviewIdRoute
+}
+
+const AuthenticatedUploadRouteChildren: AuthenticatedUploadRouteChildren = {
+  AuthenticatedUploadReviewIdRoute: AuthenticatedUploadReviewIdRoute,
+}
+
+const AuthenticatedUploadRouteWithChildren =
+  AuthenticatedUploadRoute._addFileChildren(AuthenticatedUploadRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
@@ -250,7 +281,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
-  AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
+  AuthenticatedUploadRoute: typeof AuthenticatedUploadRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -261,7 +292,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
-  AuthenticatedUploadRoute: AuthenticatedUploadRoute,
+  AuthenticatedUploadRoute: AuthenticatedUploadRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
