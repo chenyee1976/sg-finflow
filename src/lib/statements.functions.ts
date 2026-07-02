@@ -7,7 +7,7 @@ const Input = z.object({
   statementKind: z.enum(["bank", "card"]).optional().default("bank"),
 });
 
-const TxnSchema = z.object({
+export const ExtractedSchema = z.object({
   transactions: z.array(
     z.object({
       date: z.string(),
@@ -50,6 +50,14 @@ const TxnSchema = z.object({
     })
     .optional()
     .nullable(),
+});
+
+export type ExtractedData = z.infer<typeof ExtractedSchema>;
+
+const CommitInput = z.object({
+  statementId: z.string().uuid(),
+  statementKind: z.enum(["bank", "card"]),
+  data: ExtractedSchema,
 });
 
 const SYSTEM_PROMPT = `You are a financial statement parser. Extract every transaction from the provided statement (Singapore bank or credit card).
@@ -191,20 +199,55 @@ export const extractStatement = createServerFn({ method: "POST" })
       choices: { message: { content: string } }[];
     };
     const raw = json.choices?.[0]?.message?.content ?? "{}";
-    let parsed: z.infer<typeof TxnSchema>;
+    let parsed: ExtractedData;
     try {
-      parsed = TxnSchema.parse(JSON.parse(stripCodeFence(raw)));
+      parsed = ExtractedSchema.parse(JSON.parse(stripCodeFence(raw)));
     } catch (e) {
       await supabase.from("statements").update({ status: "failed" }).eq("id", stmt.id);
       throw new Error(`AI returned invalid JSON: ${(e as Error).message}`);
     }
+
+    // Save extracted data for user review — do NOT commit to transactions/accounts/cards yet.
+    await supabase
+      .from("statements")
+      .update({
+        status: "review",
+        extracted_data: parsed,
+        period_start: parsed.period_start ?? null,
+        period_end: parsed.period_end ?? null,
+        bank_or_card: parsed.bank_or_card ?? null,
+        source_type: data.statementKind ?? parsed.source_type ?? null,
+        ai_model_used: "google/gemini-2.5-flash",
+      })
+      .eq("id", stmt.id);
+
+    return { count: parsed.transactions.length, needsReview: true as const };
+  });
+
+export const commitStatement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CommitInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const parsed = data.data;
+
+    const { data: stmt, error: stmtErr } = await supabase
+      .from("statements")
+      .select("id")
+      .eq("id", data.statementId)
+      .maybeSingle();
+    if (stmtErr) throw stmtErr;
+    if (!stmt) throw new Error("Statement not found");
+
+    // Remove any previously committed rows for this statement (idempotent commit).
+    await supabase.from("transactions").delete().eq("statement_id", stmt.id);
 
     // Upsert credit card if present (card statement)
     let cardId: string | null = null;
     const c = parsed.card ?? null;
     const normalizeCard = (s: string | null | undefined) =>
       (s ?? "").replace(/[\s-]/g, "").toLowerCase();
-    if (data.statementKind === "card" || c) {
+    if (data.statementKind === "card" && c) {
       const issuer = c?.issuer ?? parsed.bank_or_card ?? "Unknown";
       const cardName = c?.card_name ?? parsed.bank_or_card ?? "Credit Card";
       const cardNumber = c?.card_number ?? null;
@@ -352,7 +395,7 @@ export const extractStatement = createServerFn({ method: "POST" })
         period_end: parsed.period_end ?? null,
         bank_or_card: parsed.bank_or_card ?? null,
         source_type: data.statementKind ?? parsed.source_type ?? null,
-        ai_model_used: "google/gemini-2.5-flash",
+        extracted_data: parsed,
       })
       .eq("id", stmt.id);
 
